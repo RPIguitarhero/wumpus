@@ -1,0 +1,10 @@
+(1)gameboard:2D 5X5 matrix, attributes are recorded as we move 
+(2)parse attributes to a weighted integer array.(?)
+(3)stench is safer than breezy, beacuse there is one wumpus, but multiple pits
+(4)if Breeze, then mark the adjacent slots as "Possible Pit"
+(5)if Stench, then mark the adjacent slots as "Possible Wumpus"
+(6)if Empty, then remove the adjacent slots as "Possible Pit" and "Possible Wumpus"
+(7)if Glitter, then grab gold and trace back the safe path to the start.
+(8)Have a array to store the shortest safest path from the start to the current slot.
+
+DFS is the core concept
