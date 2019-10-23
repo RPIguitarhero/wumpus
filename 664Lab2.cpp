@@ -12,14 +12,19 @@ using namespace std;
 //I'm just too lazy to use a dynamic 2D array or a real variable-size 2d array in Boost libray.
 string gameboard[10][10], //gameboard for tester to set up the scenario
 	AIboard[10][10];//AIboard for AI to run its algorithm, all slots unkonwn except for the starting location
-vector<vector<int>> route,//(1000, vector<int>(2, 0)),//a stack to track the correct route, size of 500 pairs of path at start
-options;// (1000, vector<int>(2, 0)); //a stack to track available adjacent slots, size of 1000 at start
-int points = 0; //accumulating points 
+vector<vector<int>> route,//A vector to record route
+options;	//a vector to record traversed options
+int points = 0, //accumulating points 
+	numBack = 0; //number of backtrack
+bool wumpusFound = false;
 
 vector<int> move(int height, int width, vector<int> currentLocation);
 void showBoard(int width, int height, bool isGameboard);
 void initBoard(int width, int height);
 vector<int> setStart(int width, int height);
+void showRoute();
+void showOption();
+bool isAvailable(vector<int> slot, int width, int height);
 
 
 int main()
@@ -40,14 +45,55 @@ int main()
 	{
 		currentLocation = move(height, width, currentLocation);
 		showBoard(width, height, 0); //DEBUG 
+		showRoute();
+		showOption();
 	} while (gameboard[currentLocation[0]][currentLocation[1]].find("G") == string::npos);
 }
 
-//CORE:algorithm per step, should return the currentLocation after this step
+//HELPER:display route
+void showRoute()
+{
+	for (int i = 0; i < route.size(); i++)
+	{
+		cout << "{" << route[i][0] << "," << route[i][1] << "}->";
+	}
+	cout << "\n";
+}
+
+//HELPER:display option stack
+void showOption()
+{
+	for (int i = 0; i < options.size(); i++)
+	{
+		cout << "{" << options[i][0] << "," << options[i][1] << "},";
+	}
+	cout << "\n";
+}
+
+//HELPER: display the AI or game board
+void showBoard(int width, int height, bool isGameBoard)
+{
+	cout << "\n";
+	for (int i = 0; i <= height; i++)
+	{
+		for (int j = 0; j <= width; j++)
+		{
+			if (isGameBoard == 1)
+			{
+				cout << gameboard[i][j] << " ";
+			}
+			else { cout << AIboard[i][j] << " "; }
+		}
+		cout << "\n";
+	}
+}
+
+//CORE:algorithm per step, should return the new location after this step
 vector<int> move(int height, int width, vector<int> currentLocation)
 {
 	int i = currentLocation[0],
-		j = currentLocation[1];
+		j = currentLocation[1],
+		k = options.size();
 	//read the current slot and store possible nearby information
 	AIboard[i][j] = gameboard[i][j];//AI now knows everything about this slot
 
@@ -67,6 +113,10 @@ vector<int> move(int height, int width, vector<int> currentLocation)
 			{
 				AIboard[i + 1][j] += "p";
 			}
+			if (AIboard[i + 1][j] == "F") //add to option
+			{
+				options.push_back({ i + 1,j });
+			}
 		}
 
 		if (j + 1 <= width)//check boundary for right slot
@@ -82,6 +132,10 @@ vector<int> move(int height, int width, vector<int> currentLocation)
 			if (AIboard[i][j + 1] == "w") //potentially a pit, add mark 'p'
 			{
 				AIboard[i][j + 1] += "p";
+			}
+			if (AIboard[i ][j + 1] == "F")
+			{
+				options.push_back({ i ,j + 1 });
 			}
 		}
 
@@ -99,6 +153,10 @@ vector<int> move(int height, int width, vector<int> currentLocation)
 			{
 				AIboard[i-1][j ] += "p";
 			}
+			if ( AIboard[i - 1][j] == "F")
+			{
+				options.push_back({ i - 1,j });
+			}
 		}
 
 		if (j - 1 >=0)//check boundary for left slot
@@ -115,6 +173,10 @@ vector<int> move(int height, int width, vector<int> currentLocation)
 			{
 				AIboard[i][j - 1] += "p";
 			}
+			if ( AIboard[i][j - 1] == "F")
+			{
+				options.push_back({ i ,j - 1 });
+			}
 		}
 	}
 
@@ -124,15 +186,24 @@ vector<int> move(int height, int width, vector<int> currentLocation)
 		{
 			if (AIboard[i + 1][j].find("w") != string::npos) //definitely a wumpus
 			{
-				AIboard[i + 1][j] = "W";
+				if (wumpusFound == false)
+				{
+					AIboard[i + 1][j] = "W";
+					wumpusFound = true;
+				}
+				else { options.push_back({ i + 1,j }); }
 			}
 			if (AIboard[i + 1][j] == "U") //potentially a wumpus, mark with 'w'
 			{
 				AIboard[i + 1][j] = "w";
 			}
-			if (AIboard[i + 1][j] == "p") //potentially a wumpus, add mark 'p'
+			if (AIboard[i + 1][j] == "p") //potentially a wumpus, add mark 'w'
 			{
 				AIboard[i + 1][j] += "w";
+			}
+			if ( AIboard[i + 1][j] == "F")
+			{
+				options.push_back({ i + 1,j });
 			}
 		}
 
@@ -140,15 +211,24 @@ vector<int> move(int height, int width, vector<int> currentLocation)
 		{
 			if (AIboard[i][j + 1].find("w") != string::npos) //definitely a wumpus
 			{
-				AIboard[i][j + 1] = "W";
+				if (wumpusFound == false)
+				{
+					AIboard[i][j+1] = "W";
+					wumpusFound = true;
+				}
+				else { options.push_back({ i ,j +1}); }
 			}
 			if (AIboard[i][j + 1] == "U") //potentially a wumpus, mark with 'w'
 			{
 				AIboard[i][j + 1] = "w";
 			}
-			if (AIboard[i][j + 1] == "p") //potentially a wumpus, add mark 'p'
+			if (AIboard[i][j + 1] == "p") //potentially a wumpus, add mark 'w'
 			{
 				AIboard[i][j + 1] += "w";
+			}
+			if (AIboard[i ][j+1] == "F")
+			{
+				options.push_back({ i ,j +1});
 			}
 		}
 
@@ -156,15 +236,24 @@ vector<int> move(int height, int width, vector<int> currentLocation)
 		{
 			if (AIboard[i - 1][j].find("w") != string::npos) //definitely a wumpus
 			{
-				AIboard[i - 1][j] = "W";
+				if (wumpusFound == false)
+				{
+					AIboard[i-1][j ] = "W";
+					wumpusFound = true;
+				}
+				else { options.push_back({ i-1, j }); }
 			}
 			if (AIboard[i - 1][j] == "U") //potentially a wumpus, mark with 'w'
 			{
 				AIboard[i - 1][j] = "w";
 			}
-			if (AIboard[i - 1][j] == "p") //potentially a wumpus, add mark 'p'
+			if (AIboard[i - 1][j] == "p") //potentially a wumpus, add mark 'w'
 			{
 				AIboard[i - 1][j] += "w";
+			}
+			if ( AIboard[i - 1][j] == "F")
+			{
+				options.push_back({ i - 1,j });
 			}
 		}
 
@@ -172,15 +261,24 @@ vector<int> move(int height, int width, vector<int> currentLocation)
 		{
 			if (AIboard[i][j - 1].find("w") != string::npos) //definitely a wumpus
 			{
-				AIboard[i][j - 1] = "W";
+				if (wumpusFound == false)
+				{
+					AIboard[i ][j - 1] = "W";
+					wumpusFound = true;
+				}
+				else { options.push_back({ i , j - 1 }); }
 			}
 			if (AIboard[i][j - 1] == "U") //potentially a wumpus, mark with 'w'
 			{
 				AIboard[i][j - 1] = "w";
 			}
-			if (AIboard[i][j - 1] == "p") //potentially a wumpus, add mark 'p'
+			if (AIboard[i][j - 1] == "p") //potentially a wumpus, add mark 'w'
 			{
 				AIboard[i][j - 1] += "w";
+			}
+			if ( AIboard[i][j - 1] == "F")
+			{
+				options.push_back({ i ,j - 1 });
 			}
 		}
 	}
@@ -196,6 +294,10 @@ vector<int> move(int height, int width, vector<int> currentLocation)
 
 	if (AIboard[i][j] == "U" || AIboard[i][j]=="E") //empty or starting slot, nothing in particular
 	{
+		if (AIboard[i][j] == "E" && points==0) //record the starting location for the first step
+		{
+			route.push_back({i,j});
+		}
 		AIboard[i][j] = " "; //this slot is now explored, mark with space
 		if (i+1 <= height)//check boundary for down slot
 		{
@@ -255,21 +357,66 @@ vector<int> move(int height, int width, vector<int> currentLocation)
 		}
 	}
 
-	//record the path to route
-	route.push_back(currentLocation);
-	route.push_back(options.back());
-
-
-	//move to the most recent option
-	return options.back();
+	if (k == options.size() ) //when no new option is added
+	{
+		for (int a = options.size() - 1; a >=0; a--)
+		{
+			if (isAvailable(options[a], width, height))
+			{
+				numBack = 0;
+				points += 1;
+				route.push_back(options[a]);
+				return options[a];
+			}
+		}
+		//backtrack when none of the current option work
+		numBack += 1; 
+		route.push_back(route[route.size() - 2 * numBack]);
+		points += 1;
+		return route.back();
+	}
+	else {
+		numBack = 0; //reset number of back track because we are moving forward
+		route.push_back(options.back());
+			points += 1;
+		return options.back();
+	}
 }
 
 //CORE check if an adjacent slot is a potential choice
-bool isAvailable(vector<int> slot)
+bool isAvailable(vector<int> slot, int width, int height)
 {
-
-	return true;
-
+	int i = slot[0],
+		j = slot[1];
+	if (i + 1 <= height )
+	{
+		if (AIboard[i + 1][j] == "U" || AIboard[i + 1][j] == "F")
+		{
+			return true;
+		}
+	}
+	if (j + 1 <= width )
+	{
+		if (AIboard[i][j + 1] == "U" || AIboard[i][j + 1] == "F")
+		{
+			return true;
+		}
+	}
+	if (j -1 >=0  )
+	{
+		if (AIboard[i][j - 1] == "U" || AIboard[i][j - 1] == "F")
+		{
+			return true;
+		}
+	}
+	if (j - 1 >= 0 )
+	{
+		if (AIboard[i][j - 1] == "U" || AIboard[i][j - 1] == "F")
+		{
+			return true;
+		}
+	}
+	return false;//it's a dead end if it leads only to unsafe slots
 }
 
 
@@ -298,22 +445,6 @@ void initBoard(int width, int height)
 	} while (input != "END");
 }
 
-//HELPER: display the AI or game board
-void showBoard(int width, int height, bool isGameBoard)
-{
-	for (int i = 0; i <= height; i++)
-	{
-		for (int j = 0; j <= width; j++)
-		{
-			if (isGameBoard == 1)
-			{
-				cout << gameboard[i][j] << " ";
-			}
-			else { cout << AIboard[i][j] << " "; }
-		}
-		cout << "\n";
-	}
-}
 
 //CORE:set up the starting location
 vector<int> setStart(int width, int height)
