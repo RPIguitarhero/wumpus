@@ -1,0 +1,8 @@
+10/23/2019 - 5:10pm - Sakhan
+
+I do not thing that "vetor" will work for our case as we need two values as an atomic value in our case. Ex: coordinate (1,1) is an atomic value and cannot be further broken down, but in the "vector" implementation in our project, each value is taken as a single atomic value.
+
+This is what I understood.
+Open to comments.
+
+---
