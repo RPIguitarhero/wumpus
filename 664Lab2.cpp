@@ -441,7 +441,7 @@ void initBoard(int width, int height)
 	do
 	{
 		getline(cin, input);
-		gameboard[int(input[0]) - 48][int(input[1]) - 48] = input.substr(2, 2); //copy the 3rd and 4th(if there is a 4th) char onto the board
+		gameboard[int(input[0]) - 48][int(input[1]) - 48] = input.substr(2); //copy from the 3rd char until end of line onto the board
 	} while (input != "END");
 }
 
